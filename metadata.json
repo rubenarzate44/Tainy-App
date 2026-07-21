@@ -1,0 +1,6 @@
+{
+  "name": "Tanylandia",
+  "description": "Sistema de gestión de eventos, contratos, calendario y finanzas para el salón de fiestas Tanylandia con sincronización de Google Sheets y alertas de pago.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
