@@ -1,13 +1,14 @@
 import React from "react";
 import { Booking, PACKAGES, EXTRA_SERVICES, CONTRACT_TERMS, getEndTime } from "../types";
-import { Share2, PhoneCall, Copy, Check, Printer, FileText, ArrowLeft } from "lucide-react";
+import { Share2, PhoneCall, Copy, Check, Printer, FileText, ArrowLeft, Edit3 } from "lucide-react";
 
 interface ContractDocumentProps {
   booking: Booking;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
-export default function ContractDocument({ booking, onClose }: ContractDocumentProps) {
+export default function ContractDocument({ booking, onClose, onEdit }: ContractDocumentProps) {
   const pkg = PACKAGES.find((p) => p.id === booking.packageId) || PACKAGES[0];
   const pendingBalance = Math.max(0, booking.totalPrice - booking.advancePayment);
 
@@ -92,7 +93,16 @@ export default function ContractDocument({ booking, onClose }: ContractDocumentP
         <span className="font-display font-bold text-sm tracking-wide">
           Vista Previa de Contrato
         </span>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1.5 text-xs font-black bg-brand-orange hover:bg-orange-600 text-white px-3.5 py-2 rounded-xl transition-all shadow-md active:scale-95"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>Actualizar Detalle y Pagos</span>
+            </button>
+          )}
           <button
             onClick={handleCopyText}
             className="p-2 bg-white/15 hover:bg-white/25 rounded-xl transition-all border border-white/20"
@@ -228,10 +238,20 @@ export default function ContractDocument({ booking, onClose }: ContractDocumentP
         <div className="space-y-6">
           <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
             <h3 className="font-bold text-sm text-slate-800 pb-2 border-b">
-              🚀 Compartir Contrato
+              🚀 Acciones y Compartir
             </h3>
             
-            <p className="text-xs text-slate-500 leading-relaxed">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="w-full py-3.5 bg-gradient-to-r from-brand-orange to-brand-yellow hover:brightness-105 text-white rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+              >
+                <Edit3 className="w-4 h-4 stroke-[3]" />
+                Actualizar Detalle y Pagos
+              </button>
+            )}
+
+            <p className="text-xs text-slate-500 leading-relaxed pt-1">
               Comparte el contrato directamente con el anfitrión usando cualquiera de estas opciones:
             </p>
 
