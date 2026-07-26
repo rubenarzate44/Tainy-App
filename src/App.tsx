@@ -147,14 +147,21 @@ const saveBooking = async (booking: Booking) => {
   };
 
   // Create or Update Contract
-  const handleSaveBooking = async (booking: Booking) => {
+const handleSaveBooking = async (booking: Booking) => {
+  console.log("BOOKING RECIBIDO:", booking);
+  console.log("ID RECIBIDO:", booking.id);
+
   try {
     const exists = bookings.some((b) => b.id === booking.id);
 
+    console.log("EXISTE EN LISTA:", exists);
+
     if (exists) {
       await updateBooking(booking.id, booking);
+      console.log("ACTUALIZADO");
     } else {
       await createBooking(booking);
+      console.log("CREADO");
     }
 
     const updated = await getBookings();
@@ -168,7 +175,7 @@ const saveBooking = async (booking: Booking) => {
     setSelectedBooking(null);
 
   } catch (error) {
-    console.error("Error guardando contrato:", error);
+    console.error("ERROR GUARDANDO:", error);
   }
 };
 
