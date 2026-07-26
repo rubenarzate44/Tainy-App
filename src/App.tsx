@@ -1,5 +1,5 @@
-import { getBookings, createBooking } from "./lib/firestore";
-import React, { useState, useEffect } from "react";
+import { getBookings, createBooking, updateBooking, deleteBooking } 
+from "./lib/firestore";import React, { useState, useEffect } from "react";
 import { Booking, PACKAGES, EXTRA_SERVICES, Package, getEndTime } from "./types";
 import CalendarView from "./components/CalendarView";
 import ContractForm from "./components/ContractForm";
@@ -88,16 +88,27 @@ useEffect(() => {
 
 
   // Save bookings to LocalStorage whenever they change
-  const saveBookings = (updatedBookings: Booking[]) => {
-    setBookings(updatedBookings);
-    localStorage.setItem("tanylandia_bookings_clean", JSON.stringify(updatedBookings));
+const saveBooking = async (booking: Booking) => {
+  try {
+    const exists = bookings.some((b) => b.id === booking.id);
 
-    // If synchronized, push update message
-    if (accessToken) {
-      triggerSheetsSync(updatedBookings);
+    if (exists) {
+      await updateBooking(booking.id, booking);
+    } else {
+      await createBooking(booking);
     }
-  };
 
+    const updated = await getBookings();
+    setBookings(updated);
+
+    if (accessToken) {
+      triggerSheetsSync(updated);
+    }
+
+  } catch (error) {
+    console.error("Error guardando contrato:", error);
+  }
+};
   const handleLogin = async () => {
     try {
       setSyncStatus("Iniciando sesión en Google...");
@@ -136,24 +147,35 @@ useEffect(() => {
   };
 
   // Create or Update Contract
-  const handleSaveBooking = (booking: Booking) => {
-    let updated: Booking[];
-    const index = bookings.findIndex((b) => b.id === booking.id);
-    if (index >= 0) {
-      updated = [...bookings];
-      updated[index] = booking;
+  const handleSaveBooking = async (booking: Booking) => {
+  try {
+    const exists = bookings.some((b) => b.id === booking.id);
+
+    if (exists) {
+      await updateBooking(booking.id, booking);
     } else {
-      updated = [booking, ...bookings];
+      await createBooking(booking);
     }
-    saveBookings(updated);
+
+    const updated = await getBookings();
+    setBookings(updated);
+
+    if (accessToken) {
+      triggerSheetsSync(updated);
+    }
+
     setActiveView("list");
     setSelectedBooking(null);
-  };
+
+  } catch (error) {
+    console.error("Error guardando contrato:", error);
+  }
+};
 
   const handleDeleteBooking = (id: string, hostName: string) => {
     if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el contrato de ${hostName}?`)) {
       const filtered = bookings.filter((b) => b.id !== id);
-      saveBookings(filtered);
+      saveBooking(filtered);
     }
   };
 
