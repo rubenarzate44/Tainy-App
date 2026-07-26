@@ -86,8 +86,8 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
 
   return (
     <div className="glass-panel-heavy rounded-3xl shadow-2xl overflow-hidden">
-      {/* Action Header bar */}
-      <div className="bg-gradient-to-r from-brand-blue to-blue-900 p-5 text-white flex justify-between items-center">
+      {/* Action Header bar (hidden on print) */}
+      <div className="bg-gradient-to-r from-brand-blue to-blue-900 p-5 text-white flex justify-between items-center no-print">
         <button
           onClick={onClose}
           className="flex items-center gap-2 text-xs font-bold bg-white/15 hover:bg-white/25 px-3.5 py-2 rounded-xl transition-all border border-white/20"
@@ -118,62 +118,62 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
       </div>
 
       <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-transparent">
-        {/* Printable styled view */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border p-8 space-y-6 relative overflow-hidden">
-          {/* Watermark/Fun background dots */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-yellow/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-orange/10 rounded-full blur-3xl -ml-10 -mb-10"></div>
+        {/* Printable styled view - Single Page Document */}
+        <div id="printable-contract" className="lg:col-span-2 bg-white rounded-2xl shadow-sm border p-6 md:p-8 space-y-4 relative overflow-hidden">
+          {/* Watermark/Fun background dots (hidden in print) */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-yellow/10 rounded-full blur-3xl -mr-10 -mt-10 no-print"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-orange/10 rounded-full blur-3xl -ml-10 -mb-10 no-print"></div>
 
           {/* Document Brand Header */}
-          <div className="flex justify-between items-start border-b pb-6">
+          <div className="flex justify-between items-start border-b pb-3">
             <div>
-              <h1 className="text-4xl font-black text-brand-blue font-display tracking-tight">
+              <h1 className="text-3xl font-black text-brand-blue font-display tracking-tight">
                 TANYLANDIA
               </h1>
-              <p className="text-xs text-brand-orange font-bold uppercase tracking-wider">
+              <p className="text-[11px] text-brand-orange font-bold uppercase tracking-wider">
                 Salón de fiestas infantiles y eventos
               </p>
             </div>
             <div className="text-right text-xs">
               <p className="font-bold text-slate-700">FOLIO DE RESERVA</p>
               <p className="font-mono text-base font-black text-brand-orange">{booking.id}</p>
-              <p className="text-slate-400 font-medium">Generado el: {booking.createdAt}</p>
+              <p className="text-slate-400 font-medium text-[10px]">Generado el: {booking.createdAt}</p>
             </div>
           </div>
 
           {/* Section: Client & Event details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-            <div className="space-y-2">
-              <h3 className="font-bold text-brand-blue border-b pb-1">👤 Datos del Anfitrión</h3>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="space-y-1">
+              <h3 className="font-bold text-brand-blue border-b pb-0.5 text-xs">👤 Datos del Anfitrión</h3>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Nombre:</span> {booking.hostName}</p>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Domicilio:</span> {booking.address}</p>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Teléfono:</span> {booking.phone}</p>
             </div>
-            <div className="space-y-2">
-              <h3 className="font-bold text-brand-orange border-b pb-1">📅 Detalles del Evento</h3>
+            <div className="space-y-1">
+              <h3 className="font-bold text-brand-orange border-b pb-0.5 text-xs">📅 Detalles del Evento</h3>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Fecha:</span> {booking.eventDate}</p>
-              <p className="text-slate-700"><span className="font-semibold text-slate-500">Horario:</span> {booking.eventTime} a {getEndTime(booking.eventTime)} hrs <span className="text-[10px] text-brand-orange font-bold font-mono bg-orange-50 px-1.5 py-0.5 rounded-md ml-1 inline-block">(6.5 hrs)</span></p>
+              <p className="text-slate-700"><span className="font-semibold text-slate-500">Horario:</span> {booking.eventTime} a {getEndTime(booking.eventTime)} hrs <span className="text-[10px] text-brand-orange font-bold font-mono bg-orange-50 px-1 py-0.5 rounded ml-1 inline-block">(6.5 hrs)</span></p>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Paquete:</span> {pkg.name}</p>
             </div>
           </div>
 
           {/* Section: Package Description */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
-            <h4 className="font-bold text-slate-800 mb-1">🎁 Contenido del {pkg.name}:</h4>
-            <p className="text-slate-600 leading-relaxed text-xs">{pkg.description}</p>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+            <h4 className="font-bold text-slate-800 mb-0.5 text-xs">🎁 Contenido del {pkg.name}:</h4>
+            <p className="text-slate-600 leading-snug text-[11px]">{pkg.description}</p>
           </div>
 
           {/* Section: Add-ons breakdown */}
           {booking.selectedAddOns.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="font-bold text-slate-800 text-sm">➕ Servicios Unitarios Adicionales</h3>
-              <table className="w-full text-xs text-left text-slate-500 border-collapse">
+            <div className="space-y-1">
+              <h3 className="font-bold text-slate-800 text-xs">➕ Servicios Unitarios Adicionales</h3>
+              <table className="w-full text-[11px] text-left text-slate-500 border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-100">
-                    <th className="py-2 px-3">Servicio</th>
-                    <th className="py-2 px-3 text-center">Cantidad</th>
-                    <th className="py-2 px-3 text-right">Precio Unitario</th>
-                    <th className="py-2 px-3 text-right">Total</th>
+                    <th className="py-1 px-2">Servicio</th>
+                    <th className="py-1 px-2 text-center">Cantidad</th>
+                    <th className="py-1 px-2 text-right">Precio Unitario</th>
+                    <th className="py-1 px-2 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,26 +186,26 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
 
                     return (
                       <tr key={item.serviceId} className="border-b border-slate-50">
-                        <td className="py-2 px-3 font-bold text-slate-800">
+                        <td className="py-1 px-2 font-bold text-slate-800">
                           {s.name}
                           {disc > 0 && (
-                            <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-md">
+                            <span className="ml-1.5 text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-1 py-0.5 rounded">
                               -{disc}% desc.
                             </span>
                           )}
                         </td>
-                        <td className="py-2 px-3 text-center font-mono">{item.quantity}</td>
-                        <td className="py-2 px-3 text-right font-mono">
+                        <td className="py-1 px-2 text-center font-mono">{item.quantity}</td>
+                        <td className="py-1 px-2 text-right font-mono">
                           {disc > 0 ? (
-                            <div className="flex flex-col items-end">
-                              <span className="line-through text-slate-400 text-[10px]">${s.price} MXN</span>
-                              <span className="text-emerald-700 font-bold">${unitPrice.toLocaleString("es-MX")} MXN</span>
-                            </div>
+                            <span>
+                              <span className="line-through text-slate-400 text-[9px] mr-1">${s.price}</span>
+                              <span className="text-emerald-700 font-bold">${unitPrice.toLocaleString("es-MX")}</span>
+                            </span>
                           ) : (
                             <span>${s.price} MXN</span>
                           )}
                         </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                        <td className="py-1 px-2 text-right font-mono font-bold text-slate-800">
                           ${itemTotal.toLocaleString("es-MX")} MXN
                         </td>
                       </tr>
@@ -217,49 +217,81 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
           )}
 
           {/* Section: Balance Summary */}
-          <div className="border-t pt-4 flex flex-col md:flex-row justify-between items-end gap-4">
-            <div className="text-xs text-slate-400">
+          <div className="border-t pt-3 flex flex-row justify-between items-end gap-4">
+            <div className="text-[11px] text-slate-500 max-w-[60%]">
               {booking.notes && (
-                <p className="italic text-slate-600 mb-1">
+                <p className="italic text-slate-700 mb-1">
                   <b>Notas:</b> {booking.notes}
                 </p>
               )}
-              *Este documento sirve como contrato oficial para salón Tanylandia.
+              <p className="font-medium text-slate-400 text-[10px]">
+                *Este resumen constituye el comprobante y contrato de la reserva en Tanylandia.
+              </p>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border min-w-[240px] space-y-1.5 text-right">
-              <div className="flex justify-between text-xs text-slate-500 font-semibold">
+            <div className="bg-slate-50 p-3 rounded-xl border min-w-[210px] space-y-1 text-right">
+              <div className="flex justify-between text-xs text-slate-600 font-semibold">
                 <span>Costo Total:</span>
-                <span className="font-mono text-slate-800">${booking.totalPrice.toLocaleString("es-MX")}</span>
+                <span className="font-mono text-slate-900">${booking.totalPrice.toLocaleString("es-MX")}</span>
               </div>
-              <div className="flex justify-between text-xs text-slate-500 font-semibold">
+              <div className="flex justify-between text-xs text-slate-600 font-semibold">
                 <span>Anticipo Pagado:</span>
-                <span className="font-mono text-emerald-600">${booking.advancePayment.toLocaleString("es-MX")}</span>
+                <span className="font-mono text-emerald-700 font-bold">${booking.advancePayment.toLocaleString("es-MX")}</span>
               </div>
-              <div className="flex justify-between text-sm font-black border-t pt-1.5 text-slate-900">
+              <div className="flex justify-between text-xs font-black border-t pt-1 text-slate-900">
                 <span>Saldo Pendiente:</span>
-                <span className={`font-mono text-lg ${pendingBalance > 0 ? "text-brand-orange" : "text-brand-green"}`}>
+                <span className={`font-mono text-base ${pendingBalance > 0 ? "text-brand-orange" : "text-brand-green"}`}>
                   ${pendingBalance.toLocaleString("es-MX")}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Signatures Area */}
-          <div className="grid grid-cols-2 gap-12 pt-12 text-center text-xs">
-            <div className="border-t pt-3">
-              <p className="font-bold text-slate-800">{booking.hostName}</p>
-              <p className="text-slate-400 font-medium">Firma del Anfitrión</p>
+          {/* Section: Términos y Condiciones Anexados */}
+          <div className="border border-slate-200 bg-slate-50/80 p-3 rounded-xl text-[10px] leading-tight space-y-1.5">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[10px] border-b pb-0.5 text-brand-blue">
+              📜 Términos, Condiciones y Reglamento Interno - Tanylandia
+            </h4>
+            <div className="grid grid-cols-2 gap-3 text-slate-700 text-[9.5px]">
+              <div className="space-y-0.5">
+                <p className="font-extrabold text-brand-blue text-[9.5px]">Políticas del Evento:</p>
+                <ul className="list-disc pl-3 space-y-0.5">
+                  <li>Permanecer en el salón tras el horario genera cobro de <b>hora extra</b>.</li>
+                  <li>El evento debe quedar <b>liquidado totalmente 1 semana antes</b>.</li>
+                  <li>En caso de cancelación <b>no se devolverá ningún anticipo</b>.</li>
+                  <li>Cambios de fecha sujetos a disponibilidad.</li>
+                  <li>Toma de corriente extra (shows/inflables/etc.): <b>$300 MXN</b>.</li>
+                </ul>
+              </div>
+              <div className="space-y-0.5">
+                <p className="font-extrabold text-red-600 text-[9.5px]">Prohibiciones y Reglas:</p>
+                <ul className="list-disc pl-3 space-y-0.5">
+                  <li>Prohibido mascotas y fumar dentro de las instalaciones.</li>
+                  <li>Prohibido ingresar pelotas similares a las del juego.</li>
+                  <li>Prohibido confeti, cañones de papel o espuma (<b>$300 MXN multa</b>).</li>
+                  <li className="font-bold text-slate-900">
+                    Daños a instalaciones (juegos, mobiliario, baños) serán cubiertos por el anfitrión al término.
+                  </li>
+                </ul>
+              </div>
             </div>
-            <div className="border-t pt-3">
-              <p className="font-bold text-slate-800">Tanylandia Eventos</p>
-              <p className="text-slate-400 font-medium">Firma de Conformidad</p>
+          </div>
+
+          {/* Signatures Area */}
+          <div className="grid grid-cols-2 gap-8 pt-4 text-center text-xs">
+            <div className="border-t border-slate-300 pt-2">
+              <p className="font-bold text-slate-800 text-[11px]">{booking.hostName}</p>
+              <p className="text-slate-400 font-medium text-[10px]">Firma del Anfitrión</p>
+            </div>
+            <div className="border-t border-slate-300 pt-2">
+              <p className="font-bold text-slate-800 text-[11px]">Tanylandia Eventos</p>
+              <p className="text-slate-400 font-medium text-[10px]">Firma de Conformidad</p>
             </div>
           </div>
         </div>
 
-        {/* Action Controls Side Card */}
-        <div className="space-y-6">
+        {/* Action Controls Side Card (hidden on print) */}
+        <div className="space-y-6 no-print">
           <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
             <h3 className="font-bold text-sm text-slate-800 pb-2 border-b">
               🚀 Acciones y Compartir
@@ -302,9 +334,9 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
 
             <button
               onClick={() => window.print()}
-              className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full py-3 bg-brand-blue hover:bg-blue-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
             >
-              <Printer className="w-4 h-4" /> Imprimir Contrato
+              <Printer className="w-4 h-4" /> Imprimir Contrato (1 Hoja)
             </button>
           </div>
 
@@ -319,5 +351,6 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
         </div>
       </div>
     </div>
+
   );
 }

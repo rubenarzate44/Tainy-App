@@ -64,3 +64,58 @@ h1, h2, h3, h4 {
   background: rgba(0, 0, 0, 0.3);
 }
 
+/* Dedicated Print Styles for Single Page Contract Sheet */
+@media print {
+  /* Hide all non-printable elements */
+  body *,
+  .no-print,
+  header,
+  nav,
+  button {
+    visibility: hidden !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset document defaults for paper printing */
+  html, body, #root {
+    background: white !important;
+    color: #000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Show only the contract sheet element */
+  #printable-contract,
+  #printable-contract * {
+    visibility: visible !important;
+  }
+
+  #printable-contract {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 16px !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Force page settings for exactly 1 portrait sheet */
+  @page {
+    size: letter portrait;
+    margin: 6mm 8mm;
+  }
+}
+
