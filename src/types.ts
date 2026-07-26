@@ -25,7 +25,7 @@ export interface Booking {
   eventTime: string; // HH:MM
   phone: string;
   packageId: string;
-  selectedAddOns: { serviceId: string; quantity: number }[];
+  selectedAddOns: { serviceId: string; quantity: number; discount?: number }[];
   totalPrice: number;
   totalCost: number;
   totalNetGain: number;

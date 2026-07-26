@@ -21,13 +21,13 @@ export default function ContractForm({
   const [eventTime, setEventTime] = useState("12:00");
   const [phone, setPhone] = useState("");
   const [packageId, setPackageId] = useState("sirvan");
-  const [advancePayment, setAdvancePayment] = useState<number>(1500); // Default downpayment
+  const [advancePayment, setAdvancePayment] = useState<number>(0); // Default downpayment starts at 0
   const [newPayment, setNewPayment] = useState<string>(""); // New payment amount entered in this session
   const [paymentAddedMessage, setPaymentAddedMessage] = useState<string>("");
   const [notes, setNotes] = useState("");
 
-  // Track quantities for extra add-on services
-  const [selectedAddOns, setSelectedAddOns] = useState<{ [serviceId: string]: number }>({});
+  // Track quantities & percentage discounts for extra add-on services
+  const [selectedAddOns, setSelectedAddOns] = useState<{ [serviceId: string]: { quantity: number; discount: number } }>({});
 
   // Show/hide terms and conditions accordion
   const [showTerms, setShowTerms] = useState(false);
@@ -46,9 +46,12 @@ export default function ContractForm({
       setAdvancePayment(editBooking.advancePayment);
       setNotes(editBooking.notes || "");
 
-      const addOnMap: { [serviceId: string]: number } = {};
+      const addOnMap: { [serviceId: string]: { quantity: number; discount: number } } = {};
       editBooking.selectedAddOns.forEach((item) => {
-        addOnMap[item.serviceId] = item.quantity;
+        addOnMap[item.serviceId] = {
+          quantity: item.quantity,
+          discount: item.discount || 0,
+        };
       });
       setSelectedAddOns(addOnMap);
     } else {
@@ -58,13 +61,13 @@ export default function ContractForm({
       setEventTime("12:00");
       setPhone("");
       setPackageId("sirvan");
-      setAdvancePayment(1500);
+      setAdvancePayment(0); // Starts at $0 MXN
       setNotes("");
       setSelectedAddOns({});
     }
   }, [editBooking, initialDate]);
 
-  // Adjust default advancePayment or package values
+  // Adjust default package
   const currentPackage = PACKAGES.find((p) => p.id === packageId) || PACKAGES[0];
 
   // Calculate prices, costs, and gains
@@ -74,15 +77,20 @@ export default function ContractForm({
     let totalCost = currentPackage.cost;
     let totalNetGain = currentPackage.netGain;
 
-    // 2. Extra Add-ons calculations
-    Object.entries(selectedAddOns).forEach(([serviceId, qty]) => {
-      const qtyVal = qty as number;
+    // 2. Extra Add-ons calculations with percentage discounts
+    Object.entries(selectedAddOns).forEach(([serviceId, addOn]) => {
+      const item = addOn as { quantity: number; discount: number };
+      const qtyVal = item.quantity || 0;
       if (qtyVal > 0) {
         const service = EXTRA_SERVICES.find((s) => s.id === serviceId);
         if (service) {
-          totalPrice += service.price * qtyVal;
-          totalNetGain += service.gain * qtyVal;
-          // Cost is price minus gain
+          const discountPercent = Math.min(100, Math.max(0, item.discount || 0));
+          const unitPriceDiscounted = service.price * (1 - discountPercent / 100);
+          const discountAmountPerUnit = service.price * (discountPercent / 100);
+
+          totalPrice += unitPriceDiscounted * qtyVal;
+          totalNetGain += Math.max(0, service.gain - discountAmountPerUnit) * qtyVal;
+
           const serviceCost = service.price - service.gain;
           totalCost += serviceCost * qtyVal;
         }
@@ -112,15 +120,30 @@ export default function ContractForm({
       const updatedTotal = advancePayment + val;
       setAdvancePayment(updatedTotal);
       setNewPayment("");
-      setPaymentAddedMessage(`¡Se sumaron $${val.toLocaleString("es-MX")} MXN a los pagos anteriores! Nuevo total pagado: $${updatedTotal.toLocaleString("es-MX")} MXN`);
+      setPaymentAddedMessage(`¡Se sumaron $${val.toLocaleString("es-MX")} MXN a los pagos anteriores! Nuevo acumulado: $${updatedTotal.toLocaleString("es-MX")} MXN`);
       setTimeout(() => setPaymentAddedMessage(""), 5000);
     }
   };
 
   const handleQuantityChange = (serviceId: string, quantity: number) => {
+    const newQty = Math.max(0, quantity);
     setSelectedAddOns((prev) => ({
       ...prev,
-      [serviceId]: Math.max(0, quantity),
+      [serviceId]: {
+        quantity: newQty,
+        discount: prev[serviceId]?.discount || 0,
+      },
+    }));
+  };
+
+  const handleDiscountChange = (serviceId: string, discount: number) => {
+    const validDiscount = Math.min(100, Math.max(0, discount));
+    setSelectedAddOns((prev) => ({
+      ...prev,
+      [serviceId]: {
+        quantity: prev[serviceId]?.quantity || 0,
+        discount: validDiscount,
+      },
     }));
   };
 
@@ -144,8 +167,15 @@ export default function ContractForm({
     }
 
     const addOnsList = Object.entries(selectedAddOns)
-      .filter(([_, qty]) => (qty as number) > 0)
-      .map(([serviceId, qty]) => ({ serviceId, quantity: qty as number }));
+      .map(([serviceId, addOn]) => {
+        const item = addOn as { quantity: number; discount: number };
+        return {
+          serviceId,
+          quantity: item.quantity || 0,
+          discount: item.discount || 0,
+        };
+      })
+      .filter((item) => item.quantity > 0);
 
     const bookingData: Booking = {
       id: editBooking ? editBooking.id : `tany-${Date.now()}`,
@@ -348,43 +378,83 @@ export default function ContractForm({
             {/* Servicios adicionales */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                Servicios Unitarios Adicionales
+                Servicios Unitarios Adicionales & Descuentos (%)
               </label>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {EXTRA_SERVICES.map((service) => {
-                  const qty = selectedAddOns[service.id] || 0;
+                  const item = selectedAddOns[service.id] || { quantity: 0, discount: 0 };
+                  const qty = item.quantity;
+                  const discount = item.discount || 0;
+                  const unitPriceDiscounted = service.price * (1 - discount / 100);
+                  const totalServicePrice = unitPriceDiscounted * qty;
+
                   return (
                     <div
                       key={service.id}
-                      className="p-2 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs"
+                      className={`p-3 rounded-2xl border transition-all space-y-2 ${
+                        qty > 0 ? "border-brand-blue/40 bg-blue-50/20 shadow-sm" : "border-slate-100 bg-slate-50/50"
+                      }`}
                     >
-                      <div className="text-left flex-1 mr-2">
-                        <p className="font-black text-slate-800">{service.name}</p>
-                        <p className="text-[9px] text-slate-400 font-medium truncate max-w-[200px]" title={service.details}>
-                          {service.details}
-                        </p>
-                        <p className="text-[10px] font-bold text-brand-blue font-mono">
-                          ${service.price} MXN
-                        </p>
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <div className="text-left flex-1">
+                          <p className="font-black text-slate-800 text-sm">{service.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[200px]" title={service.details}>
+                            {service.details}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`font-mono text-xs font-black ${discount > 0 ? "line-through text-slate-400 text-[10px]" : "text-brand-blue"}`}>
+                              ${service.price} MXN
+                            </span>
+                            {discount > 0 && (
+                              <span className="font-mono text-xs font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md">
+                                ${unitPriceDiscounted.toLocaleString("es-MX")} MXN c/u (-{discount}%)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleQuantityChange(service.id, qty - 1)}
+                            className="w-7 h-7 rounded-xl bg-slate-200 font-black flex items-center justify-center text-slate-700 hover:bg-brand-orange hover:text-white transition-colors text-sm"
+                          >
+                            -
+                          </button>
+                          <span className="w-6 text-center font-black text-sm">{qty}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleQuantityChange(service.id, qty + 1)}
+                            className="w-7 h-7 rounded-xl bg-slate-200 font-black flex items-center justify-center text-slate-700 hover:bg-brand-orange hover:text-white transition-colors text-sm"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleQuantityChange(service.id, qty - 1)}
-                          className="w-7 h-7 rounded-lg bg-slate-200 font-bold flex items-center justify-center text-slate-700 hover:bg-brand-orange hover:text-white transition-colors"
-                        >
-                          -
-                        </button>
-                        <span className="w-6 text-center font-bold text-sm">{qty}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleQuantityChange(service.id, qty + 1)}
-                          className="w-7 h-7 rounded-lg bg-slate-200 font-bold flex items-center justify-center text-slate-700 hover:bg-brand-orange hover:text-white transition-colors"
-                        >
-                          +
-                        </button>
-                      </div>
+                      {/* Descuento Porcentual para este servicio */}
+                      {qty > 0 && (
+                        <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs bg-white/80 p-2 rounded-xl">
+                          <label className="text-[11px] font-extrabold text-slate-600 flex items-center gap-1">
+                            <span>🏷️ Aplicar % de Descuento:</span>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              placeholder="0"
+                              value={discount === 0 ? "" : discount}
+                              onChange={(e) => handleDiscountChange(service.id, parseFloat(e.target.value) || 0)}
+                              className="w-16 px-2 py-1 text-center font-mono font-black border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                            />
+                            <span className="font-bold text-slate-500">%</span>
+                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md ml-1">
+                              Subtotal: ${totalServicePrice.toLocaleString("es-MX")} MXN
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -403,14 +473,14 @@ export default function ContractForm({
               </h4>
               <p className="text-xs text-slate-500 font-medium">
                 {editBooking
-                  ? "Suma abonos recibidos a los pagos anteriores o modifica el total pagado"
-                  : "Registra el anticipo o abonos del cliente"}
+                  ? "Suma abonos recibidos a los pagos anteriores"
+                  : "Registra el anticipo o abonos iniciales del cliente"}
               </p>
             </div>
 
             {editBooking && editBooking.advancePayment > 0 && (
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                <span>💰 Pagos anteriores registrados:</span>
+                <span>💰 Pagos anteriores acumulados:</span>
                 <span className="font-mono text-sm font-black text-emerald-700">${editBooking.advancePayment.toLocaleString("es-MX")} MXN</span>
               </div>
             )}
@@ -421,7 +491,7 @@ export default function ContractForm({
             <div className="bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-sm space-y-2 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
               <label className="block text-xs font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1">
-                <span>➕ Registrar Nuevo Pago / Abono Recibido Hoy ($)</span>
+                <span>➕ {editBooking ? "Registrar Nuevo Pago / Abono Recibido Hoy ($)" : "Ingresar Anticipo Inicial / Pago Recibido ($)"}</span>
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-3 w-4 h-4 text-emerald-600" />
@@ -429,7 +499,7 @@ export default function ContractForm({
                   id="input-new-payment"
                   type="number"
                   min={0}
-                  placeholder="Ej. 1000 (Monto pagado esta vez)"
+                  placeholder="0 (Monto pagado esta vez)"
                   value={newPayment}
                   onChange={(e) => setNewPayment(e.target.value)}
                   className="w-full pl-9 pr-24 py-2 bg-emerald-50/50 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm font-black font-mono text-emerald-800 shadow-inner"
@@ -439,7 +509,7 @@ export default function ContractForm({
                     type="button"
                     onClick={handleCommitNewPayment}
                     className="absolute right-1.5 top-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg shadow-sm transition-all active:scale-95"
-                    title="Fijar este abono a los pagos acumulados"
+                    title="Sumar este abono a los pagos acumulados"
                   >
                     Sumar
                   </button>
@@ -454,33 +524,30 @@ export default function ContractForm({
                 </div>
               ) : (
                 <p className="text-[10px] text-slate-500 italic">
-                  Ingresa el monto de este pago para que se sume automáticamente a lo que ya había dado.
+                  Ingresa el monto de este pago para que se sume automáticamente al acumulado.
                 </p>
               )}
             </div>
 
-            {/* Box 2: Total accumulated payments (editable) */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                Total Pagado Acumulado ($)
+            {/* Box 2: Total accumulated payments (Read-only, calculated resulting variable) */}
+            <div className="bg-slate-100/80 p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center justify-between">
+                <span>Total Pagado Acumulado ($)</span>
+                <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">🔒 Resultante</span>
               </label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-3 w-4 h-4 text-brand-blue" />
+                <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-brand-blue" />
                 <input
                   id="input-advance-payment"
-                  type="number"
-                  min={0}
-                  value={effectiveAdvancePayment}
-                  onChange={(e) => {
-                    const newTotal = Math.max(0, parseFloat(e.target.value) || 0);
-                    setAdvancePayment(newTotal);
-                    setNewPayment("");
-                  }}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue/50 text-sm font-black font-mono text-slate-800"
+                  type="text"
+                  readOnly
+                  disabled
+                  value={`$${effectiveAdvancePayment.toLocaleString("es-MX")} MXN`}
+                  className="w-full pl-9 pr-4 py-2 bg-white/80 border border-slate-200 rounded-xl text-sm font-black font-mono text-slate-800 cursor-not-allowed select-none shadow-sm"
                 />
               </div>
-              <p className="text-[10px] text-slate-400">
-                Suma total acumulada del cliente. Puedes modificar este total manualmente si lo necesitas.
+              <p className="text-[10px] text-slate-500">
+                Monto acumulado calculado automáticamente como la suma de los anticipos y pagos registrados.
               </p>
             </div>
           </div>

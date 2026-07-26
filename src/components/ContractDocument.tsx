@@ -20,7 +20,11 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
       booking.selectedAddOns.forEach((item) => {
         const service = EXTRA_SERVICES.find((s) => s.id === item.serviceId);
         if (service) {
-          addOnsText += `\n- ${service.name} (Cant: ${item.quantity}) - $${(service.price * item.quantity).toLocaleString("es-MX")} MXN`;
+          const disc = item.discount || 0;
+          const unitPrice = service.price * (1 - disc / 100);
+          const itemTotal = unitPrice * item.quantity;
+          const discInfo = disc > 0 ? ` [Con ${disc}% Desc.]` : "";
+          addOnsText += `\n- ${service.name} (Cant: ${item.quantity})${discInfo} - $${itemTotal.toLocaleString("es-MX")} MXN`;
         }
       });
     }
@@ -176,13 +180,33 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
                   {booking.selectedAddOns.map((item) => {
                     const s = EXTRA_SERVICES.find((serv) => serv.id === item.serviceId);
                     if (!s) return null;
+                    const disc = item.discount || 0;
+                    const unitPrice = s.price * (1 - disc / 100);
+                    const itemTotal = unitPrice * item.quantity;
+
                     return (
                       <tr key={item.serviceId} className="border-b border-slate-50">
-                        <td className="py-2 px-3 font-bold text-slate-800">{s.name}</td>
+                        <td className="py-2 px-3 font-bold text-slate-800">
+                          {s.name}
+                          {disc > 0 && (
+                            <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded-md">
+                              -{disc}% desc.
+                            </span>
+                          )}
+                        </td>
                         <td className="py-2 px-3 text-center font-mono">{item.quantity}</td>
-                        <td className="py-2 px-3 text-right font-mono">${s.price} MXN</td>
+                        <td className="py-2 px-3 text-right font-mono">
+                          {disc > 0 ? (
+                            <div className="flex flex-col items-end">
+                              <span className="line-through text-slate-400 text-[10px]">${s.price} MXN</span>
+                              <span className="text-emerald-700 font-bold">${unitPrice.toLocaleString("es-MX")} MXN</span>
+                            </div>
+                          ) : (
+                            <span>${s.price} MXN</span>
+                          )}
+                        </td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
-                          ${(s.price * item.quantity).toLocaleString("es-MX")} MXN
+                          ${itemTotal.toLocaleString("es-MX")} MXN
                         </td>
                       </tr>
                     );
