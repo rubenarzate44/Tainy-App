@@ -156,13 +156,14 @@ const handleSaveBooking = async (booking: Booking) => {
 
     console.log("EXISTE EN LISTA:", exists);
 
-    if (exists) {
-      await updateBooking(booking.firestoreId!, booking);
-      console.log("ACTUALIZADO");
-    } else {
-      await createBooking(booking);
-      console.log("CREADO");
-    }
+if (exists) {
+  console.log("FIRESTORE ID:", booking.firestoreId);
+  await updateBooking(booking.firestoreId!, booking);
+  console.log("ACTUALIZADO");
+} else {
+  await createBooking(booking);
+  console.log("CREADO");
+}
 
     const updated = await getBookings();
     setBookings(updated);
