@@ -1,3 +1,4 @@
+import { getBookings, createBooking } from "./lib/firestore";
 import React, { useState, useEffect } from "react";
 import { Booking, PACKAGES, EXTRA_SERVICES, Package, getEndTime } from "./types";
 import CalendarView from "./components/CalendarView";
@@ -57,28 +58,34 @@ export default function App() {
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [showSyncSuccess, setShowSyncSuccess] = useState<boolean>(false);
 
-  // Load bookings from LocalStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem("tanylandia_bookings_clean");
-    if (stored) {
-      setBookings(JSON.parse(stored));
-    } else {
-      setBookings(DEFAULT_BOOKINGS);
-      localStorage.setItem("tanylandia_bookings_clean", JSON.stringify(DEFAULT_BOOKINGS));
-    }
 
-    // Try to auto-connect Firebase Auth if session is already active
-    initAuthListener(
-      (currentUser, token) => {
-        setUser(currentUser);
-        setAccessToken(token);
-      },
-      () => {
-        setUser(null);
-        setAccessToken(null);
-      }
-    ).catch((err) => console.log("Firebase Auth no inicializado aún:", err));
-  }, []);
+// Load bookings from Firestore
+useEffect(() => {
+  const loadBookings = async () => {
+    try {
+      const data = await getBookings();
+      setBookings(data);
+    } catch (err) {
+      console.error("Error cargando reservaciones:", err);
+    }
+  };
+
+  loadBookings();
+
+  // Try to auto-connect Firebase Auth if session is already active
+  initAuthListener(
+    (currentUser, token) => {
+      setUser(currentUser);
+      setAccessToken(token);
+    },
+    () => {
+      setUser(null);
+      setAccessToken(null);
+    }
+  ).catch((err) => console.log("Firebase Auth no inicializado aún:", err));
+}, []);
+
+
 
   // Save bookings to LocalStorage whenever they change
   const saveBookings = (updatedBookings: Booking[]) => {

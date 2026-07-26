@@ -22,6 +22,8 @@ export default function ContractForm({
   const [phone, setPhone] = useState("");
   const [packageId, setPackageId] = useState("sirvan");
   const [advancePayment, setAdvancePayment] = useState<number>(1500); // Default downpayment
+  const [newPayment, setNewPayment] = useState<string>(""); // New payment amount entered in this session
+  const [paymentAddedMessage, setPaymentAddedMessage] = useState<string>("");
   const [notes, setNotes] = useState("");
 
   // Track quantities for extra add-on services
@@ -32,6 +34,8 @@ export default function ContractForm({
 
   // Initialize form when editing or adding
   useEffect(() => {
+    setNewPayment("");
+    setPaymentAddedMessage("");
     if (editBooking) {
       setHostName(editBooking.hostName);
       setAddress(editBooking.address);
@@ -85,19 +89,33 @@ export default function ContractForm({
       }
     });
 
-    const pendingBalance = Math.max(0, totalPrice - advancePayment);
+    const currentNewVal = Math.max(0, parseFloat(newPayment) || 0);
+    const effectiveAdvancePayment = Math.max(0, advancePayment + currentNewVal);
+    const pendingBalance = Math.max(0, totalPrice - effectiveAdvancePayment);
     const isPaidInFull = pendingBalance === 0;
 
     return {
       totalPrice,
       totalCost,
       totalNetGain,
+      effectiveAdvancePayment,
       pendingBalance,
       isPaidInFull,
     };
   };
 
-  const { totalPrice, totalCost, totalNetGain, pendingBalance, isPaidInFull } = calculateTotals();
+  const { totalPrice, totalCost, totalNetGain, effectiveAdvancePayment, pendingBalance, isPaidInFull } = calculateTotals();
+
+  const handleCommitNewPayment = () => {
+    const val = parseFloat(newPayment);
+    if (!isNaN(val) && val > 0) {
+      const updatedTotal = advancePayment + val;
+      setAdvancePayment(updatedTotal);
+      setNewPayment("");
+      setPaymentAddedMessage(`¡Se sumaron $${val.toLocaleString("es-MX")} MXN a los pagos anteriores! Nuevo total pagado: $${updatedTotal.toLocaleString("es-MX")} MXN`);
+      setTimeout(() => setPaymentAddedMessage(""), 5000);
+    }
+  };
 
   const handleQuantityChange = (serviceId: string, quantity: number) => {
     setSelectedAddOns((prev) => ({
@@ -141,7 +159,7 @@ export default function ContractForm({
       totalPrice,
       totalCost,
       totalNetGain,
-      advancePayment,
+      advancePayment: effectiveAdvancePayment,
       isPaidInFull,
       notes,
       createdAt: editBooking ? editBooking.createdAt : new Date().toLocaleDateString("es-MX"),
@@ -375,40 +393,117 @@ export default function ContractForm({
           </div>
         </div>
 
-        {/* Section 3: Financial computations / Downpayment */}
-        <div className="bg-slate-50 p-6 rounded-3xl border-2 border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-              Anticipo / Monto Pagado ($)
-            </label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-3 w-5 h-5 text-brand-green" />
-              <input
-                id="input-advance-payment"
-                type="number"
-                min={0}
-                value={advancePayment}
-                onChange={(e) => setAdvancePayment(Math.max(0, parseFloat(e.target.value) || 0))}
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-green/50 text-base font-black font-mono text-emerald-700"
-              />
+        {/* Section 3: Financial computations / Downpayment & Abonos */}
+        <div className="bg-slate-50 p-6 rounded-3xl border-2 border-slate-100 space-y-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 pb-3">
+            <div>
+              <h4 className="font-extrabold text-base text-slate-800 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-emerald-600" />
+                <span>Gestión de Pagos y Abonos</span>
+              </h4>
+              <p className="text-xs text-slate-500 font-medium">
+                {editBooking
+                  ? "Suma abonos recibidos a los pagos anteriores o modifica el total pagado"
+                  : "Registra el anticipo o abonos del cliente"}
+              </p>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">
-              Ingresa el monto pagado para actualizar saldo pendiente.
-            </p>
+
+            {editBooking && editBooking.advancePayment > 0 && (
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                <span>💰 Pagos anteriores registrados:</span>
+                <span className="font-mono text-sm font-black text-emerald-700">${editBooking.advancePayment.toLocaleString("es-MX")} MXN</span>
+              </div>
+            )}
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            {/* Box 1: Add new payment/abono received today */}
+            <div className="bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-sm space-y-2 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+              <label className="block text-xs font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1">
+                <span>➕ Registrar Nuevo Pago / Abono Recibido Hoy ($)</span>
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-3 w-4 h-4 text-emerald-600" />
+                <input
+                  id="input-new-payment"
+                  type="number"
+                  min={0}
+                  placeholder="Ej. 1000 (Monto pagado esta vez)"
+                  value={newPayment}
+                  onChange={(e) => setNewPayment(e.target.value)}
+                  className="w-full pl-9 pr-24 py-2 bg-emerald-50/50 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm font-black font-mono text-emerald-800 shadow-inner"
+                />
+                {parseFloat(newPayment) > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleCommitNewPayment}
+                    className="absolute right-1.5 top-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg shadow-sm transition-all active:scale-95"
+                    title="Fijar este abono a los pagos acumulados"
+                  >
+                    Sumar
+                  </button>
+                )}
+              </div>
+
+              {parseFloat(newPayment) > 0 ? (
+                <div className="p-2 rounded-xl bg-emerald-100/70 border border-emerald-300 text-[11px] font-bold text-emerald-900 space-y-0.5 animate-pulse">
+                  <p>
+                    <b>Desglose de Pago:</b> ${advancePayment.toLocaleString("es-MX")} (Anterior) + ${parseFloat(newPayment).toLocaleString("es-MX")} (Nuevo) = <span className="font-mono text-xs font-black">${(advancePayment + parseFloat(newPayment)).toLocaleString("es-MX")} MXN</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[10px] text-slate-500 italic">
+                  Ingresa el monto de este pago para que se sume automáticamente a lo que ya había dado.
+                </p>
+              )}
+            </div>
+
+            {/* Box 2: Total accumulated payments (editable) */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                Total Pagado Acumulado ($)
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-3 w-4 h-4 text-brand-blue" />
+                <input
+                  id="input-advance-payment"
+                  type="number"
+                  min={0}
+                  value={effectiveAdvancePayment}
+                  onChange={(e) => {
+                    const newTotal = Math.max(0, parseFloat(e.target.value) || 0);
+                    setAdvancePayment(newTotal);
+                    setNewPayment("");
+                  }}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue/50 text-sm font-black font-mono text-slate-800"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Suma total acumulada del cliente. Puedes modificar este total manualmente si lo necesitas.
+              </p>
+            </div>
+          </div>
+
+          {paymentAddedMessage && (
+            <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-black rounded-xl text-center animate-fade-in flex items-center justify-center gap-2 shadow-sm">
+              <span>✅</span>
+              <span>{paymentAddedMessage}</span>
+            </div>
+          )}
+
           {/* Quick Stats Summary */}
-          <div className="md:col-span-2 grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-3 text-center pt-2 border-t border-slate-200">
             <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Monto Total</span>
-              <span className="text-xl font-black font-mono text-slate-800">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Monto Total Evento</span>
+              <span className="text-lg font-black font-mono text-slate-800">
                 ${totalPrice.toLocaleString("es-MX")}
               </span>
             </div>
 
             <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Saldo Pendiente</span>
-              <span className={`text-xl font-black font-mono ${pendingBalance > 0 ? "text-brand-orange" : "text-brand-green"}`}>
+              <span className={`text-lg font-black font-mono ${pendingBalance > 0 ? "text-brand-orange" : "text-brand-green"}`}>
                 ${pendingBalance.toLocaleString("es-MX")}
               </span>
             </div>
