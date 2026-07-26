@@ -198,7 +198,7 @@ export default function ContractForm({
       eventTime,
       phone,
       packageId,
-      customPackagePrice: hasCustomPrice ? parsedCustomPrice : undefined,
+      ...(hasCustomPrice && { customPackagePrice: parsedCustomPrice }),
       selectedAddOns: addOnsList,
       totalPrice,
       totalCost,

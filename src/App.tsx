@@ -148,6 +148,9 @@ const saveBooking = async (booking: Booking) => {
 
   // Create or Update Contract
 const handleSaveBooking = async (booking: Booking) => {
+  const cleanBooking = Object.fromEntries(
+    Object.entries(booking).filter(([_, value]) => value !== undefined)
+  );
   console.log("BOOKING RECIBIDO:", booking);
   console.log("ID RECIBIDO:", booking.id);
 
@@ -158,10 +161,10 @@ const handleSaveBooking = async (booking: Booking) => {
 
 if (exists) {
   console.log("FIRESTORE ID:", booking.id);
-  await updateBooking(booking.id, booking);
+  await updateBooking(booking.id, cleanBooking as Booking);
   console.log("ACTUALIZADO");
 } else {
-  await createBooking(booking);
+  await createBooking(cleanBooking as Booking);
   console.log("CREADO");
 }
 
