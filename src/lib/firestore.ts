@@ -37,10 +37,10 @@ export async function getBookings() {
 
   const snapshot = await getDocs(collection(database, "bookings"));
 
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+return snapshot.docs.map(document => ({
+  firestoreId: document.id,
+  ...document.data()
+}));
 }
 
 export async function createBooking(booking: any) {
