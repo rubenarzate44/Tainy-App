@@ -19,7 +19,6 @@ export interface ExtraService {
 
 export interface Booking {
   id: string;
-  firestoreId?: string;
   hostName: string;
   address: string;
   eventDate: string; // YYYY-MM-DD

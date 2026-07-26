@@ -3,7 +3,7 @@ import {
   getFirestore,
   collection,
   getDocs,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc
@@ -38,7 +38,7 @@ export async function getBookings() {
   const snapshot = await getDocs(collection(database, "bookings"));
 
 return snapshot.docs.map(document => ({
-  firestoreId: document.id,
+  id: document.id,
   ...document.data()
 }));
 }
@@ -46,12 +46,12 @@ return snapshot.docs.map(document => ({
 export async function createBooking(booking: any) {
   const database = await getDb();
 
-  const docRef = await addDoc(
-    collection(database, "bookings"),
+  await setDoc(
+    doc(database, "bookings", booking.id),
     booking
   );
 
-  return docRef.id;
+  return booking.id;
 }
 
 export async function updateBooking(id: string, booking: any) {
