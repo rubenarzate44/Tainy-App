@@ -25,6 +25,7 @@ export interface Booking {
   eventTime: string; // HH:MM
   phone: string;
   packageId: string;
+  customPackagePrice?: number;
   selectedAddOns: { serviceId: string; quantity: number; discount?: number }[];
   totalPrice: number;
   totalCost: number;
@@ -40,8 +41,8 @@ export const PACKAGES: Package[] = [
     id: "solo_salon",
     name: "Solo Salón",
     price: 4250,
-    cost: 4250,
-    netGain: 0,
+    cost: 0,
+    netGain: 4250,
     description: "Uso exclusivo de las instalaciones del Salón",
     services: ["salón"]
   },
@@ -49,8 +50,8 @@ export const PACKAGES: Package[] = [
     id: "sirvan",
     name: "Paquete Sirvan",
     price: 5149,
-    cost: 4950,
-    netGain: 199,
+    cost: 700,
+    netGain: 4449,
     description: "Salón + 2 Meseros",
     services: ["salón", "mesero", "mesero"]
   },
@@ -58,8 +59,8 @@ export const PACKAGES: Package[] = [
     id: "animen",
     name: "Paquete Animen",
     price: 5549,
-    cost: 4949,
-    netGain: 600,
+    cost: 699,
+    netGain: 4850,
     description: "Salón + Animador",
     services: ["salón", "animador"]
   },
@@ -67,8 +68,8 @@ export const PACKAGES: Package[] = [
     id: "pinten",
     name: "Paquete Pinten",
     price: 5799,
-    cost: 5350,
-    netGain: 449,
+    cost: 1100,
+    netGain: 4699,
     description: "Salón + Pintacaritas + Mesero",
     services: ["salón", "pintacaritas", "mesero"]
   },
@@ -76,8 +77,8 @@ export const PACKAGES: Package[] = [
     id: "decoren",
     name: "Paquete Decoren",
     price: 6749,
-    cost: 5749,
-    netGain: 1000,
+    cost: 1499,
+    netGain: 5250,
     description: "Salón + Animador + Decoración Arcoíris",
     services: ["salón", "animador", "decoracion_arcoiris"]
   },
@@ -85,8 +86,8 @@ export const PACKAGES: Package[] = [
     id: "celebren",
     name: "Paquete Celebren",
     price: 8299,
-    cost: 6849,
-    netGain: 1450,
+    cost: 2599,
+    netGain: 5700,
     description: "Salón + Animador + Pintacaritas + Decoración Arcoíris + Mesero",
     services: ["salón", "animador", "pintacaritas", "decoracion_arcoiris", "mesero"]
   },
@@ -94,8 +95,8 @@ export const PACKAGES: Package[] = [
     id: "endulces",
     name: "Paquete Endulces",
     price: 8909,
-    cost: 7348,
-    netGain: 1561,
+    cost: 3098,
+    netGain: 5811,
     description: "Salón + Animador + Pastel Helado",
     services: ["salón", "animador", "pastel_helado"]
   },
@@ -103,8 +104,8 @@ export const PACKAGES: Package[] = [
     id: "llenes",
     name: "Paquete Llenes",
     price: 13349,
-    cost: 9910,
-    netGain: 3439,
+    cost: 5660,
+    netGain: 7689,
     description: "Salón + Taquiza + Decoración 360",
     services: ["salón", "taquiza", "decoracion_360"]
   },
@@ -112,8 +113,8 @@ export const PACKAGES: Package[] = [
     id: "despreocupes",
     name: "Paquete Despreocupes",
     price: 19849,
-    cost: 14408,
-    netGain: 5441,
+    cost: 10158,
+    netGain: 9691,
     description: "Salón + Mesero + Animador + Pintacaritas + Decoración Tainy + Taquiza + Pastel Helado",
     services: ["salón", "mesero", "animador", "pintacaritas", "decoracion_tainy", "taquiza", "pastel_helado"]
   }

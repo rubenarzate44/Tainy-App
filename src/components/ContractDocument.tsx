@@ -10,6 +10,7 @@ interface ContractDocumentProps {
 
 export default function ContractDocument({ booking, onClose, onEdit }: ContractDocumentProps) {
   const pkg = PACKAGES.find((p) => p.id === booking.packageId) || PACKAGES[0];
+  const pkgPrice = booking.customPackagePrice !== undefined ? booking.customPackagePrice : pkg.price;
   const pendingBalance = Math.max(0, booking.totalPrice - booking.advancePayment);
 
   // Generate plain text for copying or sharing
@@ -39,7 +40,7 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
 *Horario del Evento:* ${booking.eventTime} a ${getEndTime(booking.eventTime)} hrs (Duración de 6.5 horas)
 *Teléfono:* ${booking.phone}
 
-*Paquete Contratado:* ${pkg.name} ($${pkg.price.toLocaleString("es-MX")} MXN)
+*Paquete Contratado:* ${pkg.name} ($${pkgPrice.toLocaleString("es-MX")} MXN)${booking.customPackagePrice !== undefined ? " [Precio Especial]" : ""}
 *Detalles del Paquete:* ${pkg.description}${addOnsText}
 
 --------------------------------------------
@@ -153,7 +154,7 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
               <h3 className="font-bold text-brand-orange border-b pb-0.5 text-xs">📅 Detalles del Evento</h3>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Fecha:</span> {booking.eventDate}</p>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Horario:</span> {booking.eventTime} a {getEndTime(booking.eventTime)} hrs <span className="text-[10px] text-brand-orange font-bold font-mono bg-orange-50 px-1 py-0.5 rounded ml-1 inline-block">(6.5 hrs)</span></p>
-              <p className="text-slate-700"><span className="font-semibold text-slate-500">Paquete:</span> {pkg.name}</p>
+              <p className="text-slate-700"><span className="font-semibold text-slate-500">Paquete:</span> {pkg.name} <span className="font-mono font-bold text-slate-800">(${pkgPrice.toLocaleString("es-MX")} MXN)</span>{booking.customPackagePrice !== undefined && <span className="ml-1 text-[9px] bg-amber-100 text-amber-900 font-extrabold px-1 py-0.5 rounded">Precio Esp.</span>}</p>
             </div>
           </div>
 

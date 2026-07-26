@@ -21,6 +21,7 @@ export default function ContractForm({
   const [eventTime, setEventTime] = useState("12:00");
   const [phone, setPhone] = useState("");
   const [packageId, setPackageId] = useState("sirvan");
+  const [customPackagePrice, setCustomPackagePrice] = useState<string>("");
   const [advancePayment, setAdvancePayment] = useState<number>(0); // Default downpayment starts at 0
   const [newPayment, setNewPayment] = useState<string>(""); // New payment amount entered in this session
   const [paymentAddedMessage, setPaymentAddedMessage] = useState<string>("");
@@ -43,6 +44,7 @@ export default function ContractForm({
       setEventTime(editBooking.eventTime);
       setPhone(editBooking.phone);
       setPackageId(editBooking.packageId);
+      setCustomPackagePrice(editBooking.customPackagePrice !== undefined ? String(editBooking.customPackagePrice) : "");
       setAdvancePayment(editBooking.advancePayment);
       setNotes(editBooking.notes || "");
 
@@ -61,6 +63,7 @@ export default function ContractForm({
       setEventTime("12:00");
       setPhone("");
       setPackageId("sirvan");
+      setCustomPackagePrice("");
       setAdvancePayment(0); // Starts at $0 MXN
       setNotes("");
       setSelectedAddOns({});
@@ -72,10 +75,18 @@ export default function ContractForm({
 
   // Calculate prices, costs, and gains
   const calculateTotals = () => {
-    // 1. Base Package calculations
-    let totalPrice = currentPackage.price;
+    // 1. Base Package calculations (check for customPackagePrice override)
+    const parsedCustomPrice = parseFloat(customPackagePrice);
+    const hasCustomPrice = !isNaN(parsedCustomPrice) && parsedCustomPrice >= 0 && customPackagePrice.trim() !== "";
+    const effectivePackagePrice = hasCustomPrice ? parsedCustomPrice : currentPackage.price;
+
+    let totalPrice = effectivePackagePrice;
     let totalCost = currentPackage.cost;
     let totalNetGain = currentPackage.netGain;
+
+    if (hasCustomPrice) {
+      totalNetGain = effectivePackagePrice - currentPackage.cost;
+    }
 
     // 2. Extra Add-ons calculations with percentage discounts
     Object.entries(selectedAddOns).forEach(([serviceId, addOn]) => {
@@ -109,10 +120,12 @@ export default function ContractForm({
       effectiveAdvancePayment,
       pendingBalance,
       isPaidInFull,
+      hasCustomPrice,
+      parsedCustomPrice,
     };
   };
 
-  const { totalPrice, totalCost, totalNetGain, effectiveAdvancePayment, pendingBalance, isPaidInFull } = calculateTotals();
+  const { totalPrice, totalCost, totalNetGain, effectiveAdvancePayment, pendingBalance, isPaidInFull, hasCustomPrice, parsedCustomPrice } = calculateTotals();
 
   const handleCommitNewPayment = () => {
     const val = parseFloat(newPayment);
@@ -185,6 +198,7 @@ export default function ContractForm({
       eventTime,
       phone,
       packageId,
+      customPackagePrice: hasCustomPrice ? parsedCustomPrice : undefined,
       selectedAddOns: addOnsList,
       totalPrice,
       totalCost,
@@ -372,6 +386,46 @@ export default function ContractForm({
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Custom Price Input for Package (especially Solo Salón) */}
+              <div className="mt-2.5 p-3 bg-amber-50/90 border border-amber-200/90 rounded-2xl space-y-1.5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🏷️ Personalizar Precio de {currentPackage.name} ($ MXN)</span>
+                  </label>
+                  {customPackagePrice !== "" && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomPackagePrice("")}
+                      className="text-[10px] font-extrabold text-amber-800 hover:underline bg-amber-100 px-2 py-0.5 rounded-md"
+                    >
+                      Restablecer (${currentPackage.price.toLocaleString("es-MX")})
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-2.5 w-4 h-4 text-amber-700" />
+                  <input
+                    id="input-custom-package-price"
+                    type="number"
+                    min={0}
+                    placeholder={`Precio normal: $${currentPackage.price.toLocaleString("es-MX")} MXN`}
+                    value={customPackagePrice}
+                    onChange={(e) => setCustomPackagePrice(e.target.value)}
+                    className="w-full pl-9 pr-16 py-2 bg-white border border-amber-300 rounded-xl text-sm font-black font-mono text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500/50 shadow-inner"
+                  />
+                  <span className="absolute right-3 top-2.5 text-xs font-bold text-amber-700 font-mono">
+                    MXN
+                  </span>
+                </div>
+                <p className="text-[10px] text-amber-800 font-medium">
+                  {customPackagePrice !== "" && !isNaN(parseFloat(customPackagePrice))
+                    ? `*Precio personalizado activo: $${parseFloat(customPackagePrice).toLocaleString("es-MX")} MXN (Precio de lista: $${currentPackage.price.toLocaleString("es-MX")} MXN)`
+                    : packageId === "solo_salon"
+                    ? "Ingresa un monto aquí si deseas modificar la tarifa del 'Solo Salón' para esta reserva."
+                    : "Ingresa un monto aquí si deseas ajustar la tarifa base de este paquete para este contrato."}
+                </p>
               </div>
             </div>
 
