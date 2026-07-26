@@ -180,18 +180,25 @@ if (exists) {
   }
 };
 
-  const handleDeleteBooking = (id: string, hostName: string) => {
-    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el contrato de ${hostName}?`)) {
-      const filtered = bookings.filter((b) => b.id !== id);
-      saveBooking(filtered);
-    }
-  };
+const handleDeleteBooking = async (id: string, hostName: string) => {
+  if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el contrato de ${hostName}?`)) {
+    try {
+      await deleteBooking(id);
 
-  // Filtered contracts list
-  const filteredBookings = bookings.filter((b) => {
-    const query = searchQuery.toLowerCase().trim();
-    const matchesQuery =
-      !query ||
+      const updated = await getBookings();
+      setBookings(updated);
+
+    } catch (error) {
+      console.error("ERROR ELIMINANDO:", error);
+    }
+  }
+};
+
+// Filtered contracts list
+const filteredBookings = bookings.filter((b) => {
+  const query = searchQuery.toLowerCase().trim();
+  const matchesQuery =
+    !query ||
       b.hostName.toLowerCase().includes(query) ||
       b.phone.includes(query) ||
       b.eventDate.includes(query) ||
