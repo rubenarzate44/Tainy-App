@@ -1,5 +1,5 @@
 import React from "react";
-import { Booking, PACKAGES, isSchedulePending } from "../types";
+import { Booking, PACKAGES } from "../types";
 import { AlertTriangle, Bell, MessageCircle, DollarSign, Calendar, Clock } from "lucide-react";
 
 interface AlertsPanelProps {
@@ -33,7 +33,7 @@ Hola *${booking.hostName}*, le saludamos de *Tanylandia*.
 
 Le recordamos que de acuerdo a las cláusulas de contratación, el evento debe quedar liquidado en su totalidad *una semana antes* del mismo.
 
-Su evento es el día *${booking.eventDate}* ${isSchedulePending(booking) ? "con *horario por definir*" : `a las *${booking.eventTime}* hrs`}.
+Su evento es el día *${booking.eventDate}* a las *${booking.eventTime}* hrs.
 - *Monto Total:* $${booking.totalPrice.toLocaleString("es-MX")} MXN
 - *Anticipo Realizado:* $${booking.advancePayment.toLocaleString("es-MX")} MXN
 - *Saldo Pendiente por Liquidar:* *$${pendingAmount.toLocaleString("es-MX")} MXN*
@@ -85,7 +85,7 @@ Agradecemos su atención para poder proceder con todos los preparativos de su gr
                   </div>
                   <div className="flex items-center gap-1 text-[11px] text-orange-100">
                     <Clock className="w-3.5 h-3.5" />
-                    <span>{isSchedulePending(booking) ? "Horario por definir" : `${booking.eventTime} hrs`}</span>
+                    <span>{booking.eventTime} hrs</span>
                   </div>
                 </div>
 

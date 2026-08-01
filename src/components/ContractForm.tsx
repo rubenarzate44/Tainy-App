@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Booking, PACKAGES, EXTRA_SERVICES, CONTRACT_TERMS, getEndTime, isSchedulePending } from "../types";
+import { Booking, PACKAGES, EXTRA_SERVICES, CONTRACT_TERMS, getEndTime } from "../types";
 import { FileText, User, MapPin, Calendar, Clock, Phone, Sparkles, Check, DollarSign, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ContractFormProps {
@@ -19,7 +19,6 @@ export default function ContractForm({
   const [address, setAddress] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("12:00");
-  const [isTimePending, setIsTimePending] = useState(false);
   const [phone, setPhone] = useState("");
   const [packageId, setPackageId] = useState("sirvan");
   const [customPackagePrice, setCustomPackagePrice] = useState<string>("");
@@ -42,9 +41,7 @@ export default function ContractForm({
       setHostName(editBooking.hostName);
       setAddress(editBooking.address);
       setEventDate(editBooking.eventDate);
-      const pendingSchedule = isSchedulePending(editBooking);
-      setIsTimePending(pendingSchedule);
-      setEventTime(pendingSchedule ? "Por definir" : editBooking.eventTime);
+      setEventTime(editBooking.eventTime);
       setPhone(editBooking.phone);
       setPackageId(editBooking.packageId);
       setCustomPackagePrice(editBooking.customPackagePrice !== undefined ? String(editBooking.customPackagePrice) : "");
@@ -64,7 +61,6 @@ export default function ContractForm({
       setAddress("");
       setEventDate(initialDate || new Date().toISOString().split("T")[0]);
       setEventTime("12:00");
-      setIsTimePending(false);
       setPhone("");
       setPackageId("sirvan");
       setCustomPackagePrice("");
@@ -199,11 +195,10 @@ export default function ContractForm({
       hostName,
       address,
       eventDate,
-      eventTime: isTimePending ? "Por definir" : eventTime,
-      isTimePending,
+      eventTime,
       phone,
       packageId,
-      customPackagePrice: hasCustomPrice ? parsedCustomPrice : undefined,
+      ...(hasCustomPrice && { customPackagePrice: parsedCustomPrice }),
       selectedAddOns: addOnsList,
       totalPrice,
       totalCost,
@@ -300,56 +295,24 @@ export default function ContractForm({
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Hora de Inicio {!isTimePending && <span className="text-red-500">*</span>}
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-extrabold text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200/80 transition-colors select-none">
-                    <input
-                      id="checkbox-pending-time"
-                      type="checkbox"
-                      checked={isTimePending}
-                      onChange={(e) => {
-                        setIsTimePending(e.target.checked);
-                        if (e.target.checked) {
-                          setEventTime("Por definir");
-                        } else {
-                          setEventTime("12:00");
-                        }
-                      }}
-                      className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer"
-                    />
-                    <span>⏳ Horario pendiente</span>
-                  </label>
-                </div>
-
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Hora de Inicio <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                   <input
                     id="input-event-time"
-                    type={isTimePending ? "text" : "time"}
-                    readOnly={isTimePending}
-                    required={!isTimePending}
-                    value={isTimePending ? "Por definir (Pendiente)" : eventTime}
+                    type="time"
+                    required
+                    value={eventTime}
                     onChange={(e) => setEventTime(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-xl text-sm transition-all font-mono shadow-inner ${
-                      isTimePending
-                        ? "bg-amber-50/80 border-amber-300 text-amber-900 font-bold cursor-not-allowed"
-                        : "bg-white/60 border-white/50 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 focus:border-brand-orange"
-                    }`}
+                    className="w-full pl-10 pr-4 py-2 bg-white/60 border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-orange/50 focus:border-brand-orange text-sm transition-all font-mono shadow-inner"
                   />
                 </div>
-                {!isTimePending ? (
-                  eventTime && (
-                    <div className="mt-1.5 p-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-[11px] font-black text-brand-orange flex items-center gap-1.5 shadow-sm animate-pulse">
-                      <span>⏱️</span>
-                      <span>Término: <b className="font-mono text-xs">{getEndTime(eventTime)} hrs</b> (Duración fija de 6.5 horas)</span>
-                    </div>
-                  )
-                ) : (
-                  <div className="mt-1.5 p-2 rounded-xl bg-amber-100/80 border border-amber-300/80 text-[11px] font-bold text-amber-900 flex items-center gap-1.5 shadow-sm">
-                    <span>⏳</span>
-                    <span>El horario quedará registrado como <b>"Por definir"</b> hasta que el cliente lo confirme.</span>
+                {eventTime && (
+                  <div className="mt-1.5 p-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-[11px] font-black text-brand-orange flex items-center gap-1.5 shadow-sm animate-pulse">
+                    <span>⏱️</span>
+                    <span>Término: <b className="font-mono text-xs">{getEndTime(eventTime)} hrs</b> (Duración fija de 6.5 horas)</span>
                   </div>
                 )}
               </div>

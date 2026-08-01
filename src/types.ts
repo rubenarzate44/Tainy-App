@@ -22,8 +22,7 @@ export interface Booking {
   hostName: string;
   address: string;
   eventDate: string; // YYYY-MM-DD
-  eventTime: string; // HH:MM or "Por definir"
-  isTimePending?: boolean;
+  eventTime: string; // HH:MM
   phone: string;
   packageId: string;
   customPackagePrice?: number;
@@ -203,35 +202,13 @@ Estrictamente prohibido dentro de Tanylandia:
 
 IMPORTANTE: CUALQUIER DESPERFECTO EN LAS INSTALACIONES DE TANYLANDIA (JUEGOS, MOBILIARIO, BAÑOS, ACCESORIOS) CAUSADOS DURANTE EL EVENTO SERÁN RESPONSABILIDAD DEL ANFITRIÓN, EL CUAL DEBERÁ CUBRIR EL MONTO QUE TANYLANDIA INDIQUE AL TÉRMINO DEL EVENTO.`;
 
-export function isSchedulePending(booking: { eventTime?: string; isTimePending?: boolean }): boolean {
-  if (booking.isTimePending) return true;
-  if (
-    !booking.eventTime ||
-    booking.eventTime === "Pendiente" ||
-    booking.eventTime === "Por definir" ||
-    booking.eventTime.toLowerCase() === "por definir" ||
-    !booking.eventTime.includes(":")
-  ) {
-    return true;
-  }
-  return false;
-}
-
 export function getEndTime(startTime: string): string {
-  if (
-    !startTime ||
-    startTime === "Pendiente" ||
-    startTime === "Por definir" ||
-    startTime.toLowerCase() === "por definir" ||
-    !startTime.includes(":")
-  ) {
-    return "Por definir";
-  }
+  if (!startTime || !startTime.includes(":")) return "";
   const [hoursStr, minutesStr] = startTime.split(":");
   let hours = parseInt(hoursStr, 10);
   let minutes = parseInt(minutesStr, 10);
   
-  if (isNaN(hours) || isNaN(minutes)) return "Por definir";
+  if (isNaN(hours) || isNaN(minutes)) return "";
   
   // Add 6 hours and 30 minutes
   minutes += 30;
