@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Booking, PACKAGES, getEndTime } from "../types";
+import { Booking, PACKAGES, getEndTime, isSchedulePending } from "../types";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle, Clock, Plus, Trash2, Edit } from "lucide-react";
 
 interface CalendarViewProps {
@@ -188,7 +188,7 @@ export default function CalendarView({
                     🎈 {booking.hostName}
                   </p>
                   <p className="text-[8px] opacity-80 truncate">
-                    ⏱️ {booking.eventTime} a {getEndTime(booking.eventTime)}
+                    {isSchedulePending(booking) ? "⏳ Horario: Por definir" : `⏱️ ${booking.eventTime} a ${getEndTime(booking.eventTime)}`}
                   </p>
                 </div>
               ) : (

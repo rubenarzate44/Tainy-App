@@ -1,5 +1,5 @@
 import React from "react";
-import { Booking, PACKAGES, EXTRA_SERVICES, CONTRACT_TERMS, getEndTime } from "../types";
+import { Booking, PACKAGES, EXTRA_SERVICES, CONTRACT_TERMS, getEndTime, isSchedulePending } from "../types";
 import { Share2, PhoneCall, Copy, Check, Printer, FileText, ArrowLeft, Edit3 } from "lucide-react";
 
 interface ContractDocumentProps {
@@ -37,7 +37,7 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
 *Anfitrión:* ${booking.hostName}
 *Domicilio:* ${booking.address}
 *Fecha del Evento:* ${booking.eventDate}
-*Horario del Evento:* ${booking.eventTime} a ${getEndTime(booking.eventTime)} hrs (Duración de 6.5 horas)
+*Horario del Evento:* ${isSchedulePending(booking) ? "Por definir (Pendiente de confirmar por el cliente)" : `${booking.eventTime} a ${getEndTime(booking.eventTime)} hrs (Duración de 6.5 horas)`}
 *Teléfono:* ${booking.phone}
 
 *Paquete Contratado:* ${pkg.name} ($${pkgPrice.toLocaleString("es-MX")} MXN)${booking.customPackagePrice !== undefined ? " [Precio Especial]" : ""}
@@ -153,7 +153,21 @@ export default function ContractDocument({ booking, onClose, onEdit }: ContractD
             <div className="space-y-1">
               <h3 className="font-bold text-brand-orange border-b pb-0.5 text-xs">📅 Detalles del Evento</h3>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Fecha:</span> {booking.eventDate}</p>
-              <p className="text-slate-700"><span className="font-semibold text-slate-500">Horario:</span> {booking.eventTime} a {getEndTime(booking.eventTime)} hrs <span className="text-[10px] text-brand-orange font-bold font-mono bg-orange-50 px-1 py-0.5 rounded ml-1 inline-block">(6.5 hrs)</span></p>
+              <p className="text-slate-700">
+                <span className="font-semibold text-slate-500">Horario:</span>{" "}
+                {isSchedulePending(booking) ? (
+                  <span className="text-amber-800 font-extrabold bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg text-xs inline-flex items-center gap-1">
+                    ⏳ Por definir (Horario Pendiente)
+                  </span>
+                ) : (
+                  <>
+                    {booking.eventTime} a {getEndTime(booking.eventTime)} hrs{" "}
+                    <span className="text-[10px] text-brand-orange font-bold font-mono bg-orange-50 px-1 py-0.5 rounded ml-1 inline-block">
+                      (6.5 hrs)
+                    </span>
+                  </>
+                )}
+              </p>
               <p className="text-slate-700"><span className="font-semibold text-slate-500">Paquete:</span> {pkg.name} <span className="font-mono font-bold text-slate-800">(${pkgPrice.toLocaleString("es-MX")} MXN)</span>{booking.customPackagePrice !== undefined && <span className="ml-1 text-[9px] bg-amber-100 text-amber-900 font-extrabold px-1 py-0.5 rounded">Precio Esp.</span>}</p>
             </div>
           </div>

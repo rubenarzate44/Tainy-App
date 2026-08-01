@@ -1,6 +1,5 @@
-import { getBookings, createBooking, updateBooking, deleteBooking } 
-from "./lib/firestore";import React, { useState, useEffect } from "react";
-import { Booking, PACKAGES, EXTRA_SERVICES, Package, getEndTime } from "./types";
+import React, { useState, useEffect } from "react";
+import { Booking, PACKAGES, EXTRA_SERVICES, Package, getEndTime, isSchedulePending } from "./types";
 import CalendarView from "./components/CalendarView";
 import ContractForm from "./components/ContractForm";
 import ContractDocument from "./components/ContractDocument";
@@ -29,7 +28,9 @@ import {
   Filter,
   DollarSign,
   X,
-  CreditCard
+  CreditCard,
+  ArrowLeft,
+  Home
 } from "lucide-react";
 
 // Default initial bookings state
@@ -58,57 +59,138 @@ export default function App() {
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [showSyncSuccess, setShowSyncSuccess] = useState<boolean>(false);
 
+  // Gesture & Back Navigation States
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [swipeToast, setSwipeToast] = useState<string | null>(null);
 
-// Load bookings from Firestore
-useEffect(() => {
-  const loadBookings = async () => {
-    try {
-      const data = await getBookings();
-      setBookings(data);
-    } catch (err) {
-      console.error("Error cargando reservaciones:", err);
+  // Helper for synchronized state + browser history navigation
+  const navigateTo = (
+    tab: "calendar" | "contracts" | "dashboard",
+    view: "list" | "form" | "document" = "list",
+    modalBooking: Booking | null = null
+  ) => {
+    setActiveTab(tab);
+    setActiveView(view);
+    setCalendarModalBooking(modalBooking);
+    window.history.pushState({ tab, view, hasModal: !!modalBooking }, "");
+  };
+
+  const handleGoHome = () => {
+    setCalendarModalBooking(null);
+    setActiveView("list");
+    setActiveTab("calendar");
+    setSelectedBooking(null);
+    window.history.pushState({ tab: "calendar", view: "list", hasModal: false }, "");
+  };
+
+  const handleGoBack = () => {
+    if (calendarModalBooking) {
+      setCalendarModalBooking(null);
+      window.history.pushState({ tab: activeTab, view: activeView, hasModal: false }, "");
+      return;
+    }
+    if (activeView === "form" || activeView === "document") {
+      setActiveView("list");
+      setSelectedBooking(null);
+      window.history.pushState({ tab: activeTab, view: "list", hasModal: false }, "");
+      return;
+    }
+    if (activeTab !== "calendar") {
+      setActiveTab("calendar");
+      setActiveView("list");
+      setSelectedBooking(null);
+      window.history.pushState({ tab: "calendar", view: "list", hasModal: false }, "");
+      return;
     }
   };
 
-  loadBookings();
-
-  // Try to auto-connect Firebase Auth if session is already active
-  initAuthListener(
-    (currentUser, token) => {
-      setUser(currentUser);
-      setAccessToken(token);
-    },
-    () => {
-      setUser(null);
-      setAccessToken(null);
+  // Sync state with browser back/forward gestures & popstate
+  useEffect(() => {
+    if (!window.history.state) {
+      window.history.replaceState({ tab: "calendar", view: "list", hasModal: false }, "");
     }
-  ).catch((err) => console.log("Firebase Auth no inicializado aún:", err));
-}, []);
 
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state;
+      if (state) {
+        if (state.tab) setActiveTab(state.tab);
+        if (state.view) setActiveView(state.view);
+        if (!state.hasModal) setCalendarModalBooking(null);
+      } else {
+        setCalendarModalBooking(null);
+        setActiveView("list");
+        setActiveTab("calendar");
+      }
+    };
 
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Touch Swipe Right (deslizar la pantalla hacia la derecha para regresar)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setTouchStartX(e.touches[0].clientX);
+      setTouchStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    // Detect swipe right: at least 70px rightwards, horizontal angle (|deltaY| < deltaX * 0.8)
+    if (deltaX > 75 && Math.abs(deltaY) < deltaX * 0.8) {
+      if (calendarModalBooking !== null || activeView !== "list" || activeTab !== "calendar") {
+        handleGoBack();
+        setSwipeToast("👈 Volviendo al Inicio / Pantalla anterior");
+        setTimeout(() => setSwipeToast(null), 2200);
+      }
+    }
+
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
+  // Load bookings from LocalStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("tanylandia_bookings_clean");
+    if (stored) {
+      setBookings(JSON.parse(stored));
+    } else {
+      setBookings(DEFAULT_BOOKINGS);
+      localStorage.setItem("tanylandia_bookings_clean", JSON.stringify(DEFAULT_BOOKINGS));
+    }
+
+    // Try to auto-connect Firebase Auth if session is already active
+    initAuthListener(
+      (currentUser, token) => {
+        setUser(currentUser);
+        setAccessToken(token);
+      },
+      () => {
+        setUser(null);
+        setAccessToken(null);
+      }
+    ).catch((err) => console.log("Firebase Auth no inicializado aún:", err));
+  }, []);
 
   // Save bookings to LocalStorage whenever they change
-const saveBooking = async (booking: Booking) => {
-  try {
-    const exists = bookings.some((b) => b.id === booking.id);
+  const saveBookings = (updatedBookings: Booking[]) => {
+    setBookings(updatedBookings);
+    localStorage.setItem("tanylandia_bookings_clean", JSON.stringify(updatedBookings));
 
-    if (exists) {
-      await updateBooking(booking.id, booking);
-    } else {
-      await createBooking(booking);
-    }
-
-    const updated = await getBookings();
-    setBookings(updated);
-
+    // If synchronized, push update message
     if (accessToken) {
-      triggerSheetsSync(updated);
+      triggerSheetsSync(updatedBookings);
     }
+  };
 
-  } catch (error) {
-    console.error("Error guardando contrato:", error);
-  }
-};
   const handleLogin = async () => {
     try {
       setSyncStatus("Iniciando sesión en Google...");
@@ -147,61 +229,32 @@ const saveBooking = async (booking: Booking) => {
   };
 
   // Create or Update Contract
-const handleSaveBooking = async (booking: Booking) => {
-  const cleanBooking = Object.fromEntries(
-    Object.entries(booking).filter(([_, value]) => value !== undefined)
-  );
-  console.log("BOOKING RECIBIDO:", booking);
-  console.log("ID RECIBIDO:", booking.id);
-
-  try {
-    const exists = bookings.some((b) => b.id === booking.id);
-
-    console.log("EXISTE EN LISTA:", exists);
-
-if (exists) {
-  console.log("FIRESTORE ID:", booking.id);
-  await updateBooking(booking.id, cleanBooking as Booking);
-  console.log("ACTUALIZADO");
-} else {
-  await createBooking(cleanBooking as Booking);
-  console.log("CREADO");
-}
-
-    const updated = await getBookings();
-    setBookings(updated);
-
-    if (accessToken) {
-      triggerSheetsSync(updated);
+  const handleSaveBooking = (booking: Booking) => {
+    let updated: Booking[];
+    const index = bookings.findIndex((b) => b.id === booking.id);
+    if (index >= 0) {
+      updated = [...bookings];
+      updated[index] = booking;
+    } else {
+      updated = [booking, ...bookings];
     }
-
+    saveBookings(updated);
     setActiveView("list");
     setSelectedBooking(null);
+  };
 
-  } catch (error) {
-    console.error("ERROR GUARDANDO:", error);
-  }
-};
-
-const handleDeleteBooking = async (id: string, hostName: string) => {
-  if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el contrato de ${hostName}?`)) {
-    try {
-      await deleteBooking(id);
-
-      const updated = await getBookings();
-      setBookings(updated);
-
-    } catch (error) {
-      console.error("ERROR ELIMINANDO:", error);
+  const handleDeleteBooking = (id: string, hostName: string) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el contrato de ${hostName}?`)) {
+      const filtered = bookings.filter((b) => b.id !== id);
+      saveBookings(filtered);
     }
-  }
-};
+  };
 
-// Filtered contracts list
-const filteredBookings = bookings.filter((b) => {
-  const query = searchQuery.toLowerCase().trim();
-  const matchesQuery =
-    !query ||
+  // Filtered contracts list
+  const filteredBookings = bookings.filter((b) => {
+    const query = searchQuery.toLowerCase().trim();
+    const matchesQuery =
+      !query ||
       b.hostName.toLowerCase().includes(query) ||
       b.phone.includes(query) ||
       b.eventDate.includes(query) ||
@@ -216,7 +269,18 @@ const filteredBookings = bookings.filter((b) => {
   });
 
   return (
-    <div className="min-h-screen pb-12 text-slate-800">
+    <div
+      className="min-h-screen pb-12 text-slate-800 relative select-none sm:select-auto"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Toast notification when gesture swipe triggers back navigation */}
+      {swipeToast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs font-black px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md border border-white/20 animate-bounce flex items-center gap-2">
+          <span>{swipeToast}</span>
+        </div>
+      )}
+
       {/* Visual top colorful border */}
       <div className="h-6 bg-gradient-to-r from-brand-blue via-brand-orange via-brand-yellow to-brand-green"></div>
 
@@ -225,11 +289,18 @@ const filteredBookings = bookings.filter((b) => {
         <div className="glass-panel-heavy rounded-3xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4 text-center md:text-left">
             {/* Visual playful logo */}
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-blue via-brand-orange to-brand-yellow p-1 shadow-lg transform rotate-3 flex items-center justify-center text-white text-3xl font-black font-display select-none">
+            <div
+              onClick={handleGoHome}
+              className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-blue via-brand-orange to-brand-yellow p-1 shadow-lg transform rotate-3 flex items-center justify-center text-white text-3xl font-black font-display select-none cursor-pointer hover:scale-105 transition-transform"
+              title="Ir al Inicio"
+            >
               🎈
             </div>
             <div>
-              <h1 className="text-3xl md:text-4xl font-black text-brand-blue tracking-tight font-display flex items-center justify-center md:justify-start gap-1">
+              <h1
+                onClick={handleGoHome}
+                className="text-3xl md:text-4xl font-black text-brand-blue tracking-tight font-display flex items-center justify-center md:justify-start gap-1 cursor-pointer"
+              >
                 Tanylandia <span className="text-brand-orange">✨</span>
               </h1>
               <p className="text-xs text-brand-blue/70 font-black uppercase tracking-widest mt-0.5">
@@ -303,14 +374,47 @@ const filteredBookings = bookings.filter((b) => {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 space-y-6">
+        {/* Quick Navigation / Return to Inicio Header Bar when away from main view */}
+        {(activeTab !== "calendar" || activeView !== "list" || calendarModalBooking !== null) && (
+          <div className="flex flex-wrap items-center justify-between bg-white/95 backdrop-blur-md p-3 px-4 rounded-2xl border border-slate-200/80 shadow-md animate-fade-in gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                id="btn-back-previous"
+                onClick={handleGoBack}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 border border-slate-200"
+                title="Regresar a la vista anterior"
+              >
+                <ArrowLeft className="w-4 h-4 stroke-[3] text-slate-600" />
+                <span>Regresar</span>
+              </button>
+
+              <button
+                id="btn-go-home"
+                onClick={handleGoHome}
+                className="px-4 py-2 bg-gradient-to-r from-brand-blue to-blue-700 hover:brightness-110 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                title="Ir directamente al Inicio (Calendario)"
+              >
+                <Home className="w-4 h-4" />
+                <span>Inicio 🏠</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] font-extrabold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/60">
+              <span className="text-brand-orange animate-pulse">👈</span>
+              <span>
+                <b>Gesto activado:</b> Desliza la pantalla hacia la derecha para regresar
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Alerts / Notifications Panel for balances due 1 week before */}
         <AlertsPanel
           bookings={bookings}
           onSelectBooking={(booking) => {
             setSelectedBooking(booking);
-            setActiveTab("contracts");
-            setActiveView("document");
+            navigateTo("contracts", "document");
           }}
         />
 
@@ -320,7 +424,7 @@ const filteredBookings = bookings.filter((b) => {
             <button
               id="tab-calendar-btn"
               onClick={() => {
-                setActiveTab("calendar");
+                navigateTo("calendar", "list");
               }}
               className={`px-5 py-3 rounded-t-2xl font-black font-display text-sm tracking-wide transition-all flex items-center gap-2 ${
                 activeTab === "calendar"
@@ -335,8 +439,7 @@ const filteredBookings = bookings.filter((b) => {
             <button
               id="tab-contracts-btn"
               onClick={() => {
-                setActiveTab("contracts");
-                setActiveView("list");
+                navigateTo("contracts", "list");
               }}
               className={`px-5 py-3 rounded-t-2xl font-black font-display text-sm tracking-wide transition-all flex items-center gap-2 ${
                 activeTab === "contracts"
@@ -350,7 +453,7 @@ const filteredBookings = bookings.filter((b) => {
 
             <button
               id="tab-dashboard-btn"
-              onClick={() => setActiveTab("dashboard")}
+              onClick={() => navigateTo("dashboard", "list")}
               className={`px-5 py-3 rounded-t-2xl font-black font-display text-sm tracking-wide transition-all flex items-center gap-2 ${
                 activeTab === "dashboard"
                   ? "bg-white/90 text-brand-blue shadow-md backdrop-blur-md transform translate-y-[2px]"
@@ -368,7 +471,7 @@ const filteredBookings = bookings.filter((b) => {
               onClick={() => {
                 setSelectedBooking(null);
                 setSelectedDate("");
-                setActiveView("form");
+                navigateTo("contracts", "form");
               }}
               className="px-4 py-2.5 bg-gradient-to-r from-brand-orange to-brand-yellow hover:brightness-105 text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center gap-1.5 transition-all active:scale-95"
             >
@@ -544,7 +647,11 @@ const filteredBookings = bookings.filter((b) => {
                                 <p className="text-xs text-slate-500 font-bold flex items-center gap-1.5 mt-0.5">
                                   <span>📅 {booking.eventDate}</span>
                                   <span>•</span>
-                                  <span>⏱️ {booking.eventTime} a {getEndTime(booking.eventTime)} hrs</span>
+                                  <span>
+                                    {isSchedulePending(booking)
+                                      ? "⏳ Horario: Por definir"
+                                      : `⏱️ ${booking.eventTime} a ${getEndTime(booking.eventTime)} hrs`}
+                                  </span>
                                 </p>
                               </div>
 
@@ -612,7 +719,7 @@ const filteredBookings = bookings.filter((b) => {
                             <button
                               onClick={() => {
                                 setSelectedBooking(booking);
-                                setActiveView("document");
+                                navigateTo("contracts", "document");
                               }}
                               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
                               title="Ver documento oficial de contrato"
@@ -626,7 +733,7 @@ const filteredBookings = bookings.filter((b) => {
                               id={`update-payment-btn-${booking.id}`}
                               onClick={() => {
                                 setSelectedBooking(booking);
-                                setActiveView("form");
+                                navigateTo("contracts", "form");
                               }}
                               className="flex-1 py-2 px-3 bg-gradient-to-r from-brand-orange to-brand-yellow hover:brightness-105 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95"
                               title="Actualizar datos del cliente, anticipo o abonos"
@@ -657,10 +764,7 @@ const filteredBookings = bookings.filter((b) => {
                 initialDate={selectedDate}
                 editBooking={selectedBooking}
                 onSave={handleSaveBooking}
-                onCancel={() => {
-                  setActiveView("list");
-                  setSelectedBooking(null);
-                }}
+                onCancel={handleGoBack}
               />
             )}
 
@@ -668,12 +772,9 @@ const filteredBookings = bookings.filter((b) => {
             {activeView === "document" && selectedBooking && (
               <ContractDocument
                 booking={selectedBooking}
-                onClose={() => {
-                  setActiveView("list");
-                  setSelectedBooking(null);
-                }}
+                onClose={handleGoBack}
                 onEdit={() => {
-                  setActiveView("form");
+                  navigateTo("contracts", "form");
                 }}
               />
             )}
@@ -692,13 +793,12 @@ const filteredBookings = bookings.filter((b) => {
           <div className="max-w-4xl w-full my-8 relative">
             <ContractDocument
               booking={calendarModalBooking}
-              onClose={() => setCalendarModalBooking(null)}
+              onClose={() => handleGoBack()}
               onEdit={() => {
                 const b = calendarModalBooking;
                 setCalendarModalBooking(null);
                 setSelectedBooking(b);
-                setActiveTab("contracts");
-                setActiveView("form");
+                navigateTo("contracts", "form");
               }}
             />
           </div>
