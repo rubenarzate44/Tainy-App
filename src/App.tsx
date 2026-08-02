@@ -544,7 +544,7 @@ const filteredBookings = bookings.filter((b) => {
                                 <p className="text-xs text-slate-500 font-bold flex items-center gap-1.5 mt-0.5">
                                   <span>📅 {booking.eventDate}</span>
                                   <span>•</span>
-                                  <span>⏱️ {booking.eventTime} a {getEndTime(booking.eventTime)} hrs</span>
+                                  <span>⏱️ {booking.timePending ? "🕒 Pendiente por confirmar" : `${booking.eventTime} hrs`} a {getEndTime(booking.eventTime)} hrs</span>
                                 </p>
                               </div>
 

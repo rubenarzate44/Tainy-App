@@ -188,7 +188,7 @@ export default function CalendarView({
                     🎈 {booking.hostName}
                   </p>
                   <p className="text-[8px] opacity-80 truncate">
-                    ⏱️ {booking.eventTime} a {getEndTime(booking.eventTime)}
+                    ⏱️  a {getEndTime(booking.eventTime)}
                   </p>
                 </div>
               ) : (

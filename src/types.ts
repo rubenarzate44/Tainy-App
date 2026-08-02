@@ -34,6 +34,7 @@ export interface Booking {
   isPaidInFull: boolean;
   notes?: string;
   createdAt: string;
+  timePending: boolean;
 }
 
 export const PACKAGES: Package[] = [
